@@ -3,11 +3,13 @@
 #ifndef INFOB3IT_MOISTURESENSOR_H
 #define INFOB3IT_MOISTURESENSOR_H
 
-class MoistureSensor {
+class MoistureSensor
+{
 
 private:
     int inputPinNumber;
     int outputPinNumber;
+    int maxValue;
 
 public:
     // Constructor
@@ -17,9 +19,3 @@ public:
 };
 
 #endif //INFOB3IT_MOISTURESENSOR_H
-
-
-
-
-
-
