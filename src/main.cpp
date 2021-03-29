@@ -10,7 +10,7 @@
 
 // State enumerations
 enum Mode{automatic, manual, watering};
-enum DisplayState{temperature, humidity, moisture, pressure, lastWaterTime};
+enum DisplayState{temperature, humidity, moisture, pressure, waterTime};
 
 // Sensors
 BinarySwitch modeButton(D3);
@@ -29,14 +29,15 @@ Timer rotateStateTimer;
 // // Globals
 Mode mode = automatic;
 DisplayState displayState = temperature;
-unsigned long readSensorDelay = 10000;
-unsigned long rotateStateDelay = 5000;
+unsigned long readSensorDelay = 4000;
+unsigned long rotateStateDelay = 2000;
 int buttonDebounce = 500;
 int moistureValue;
 float temperatureValue;
 float humidityValue;
 float pressureValue;
 int moistureThreshold = 500;
+unsigned long lastWaterTime;
 
 void setup() {
   // BME init
@@ -61,7 +62,8 @@ void setup() {
  
 void loop() {
 
-  Serial.println(millis());
+  Serial.println(moistureValue);
+  Serial.println(wateringMotor.getLastWaterTime());
 
   if(readSensorTimer.hasExpired()){
     
@@ -69,6 +71,7 @@ void loop() {
     temperatureValue = bme.readTemperature();
     humidityValue = bme.readHumidity();
     pressureValue = bme.readPressure() / 100.0F;
+    lastWaterTime = wateringMotor.getLastWaterTime();
     
     readSensorTimer.repeat();
 
@@ -87,9 +90,9 @@ void loop() {
           displayState = pressure;
           break;
       case pressure:
-          displayState = lastWaterTime;
+          displayState = waterTime;
           break;
-      case lastWaterTime:
+      case waterTime:
           displayState = temperature;
           break;  
       default:
@@ -144,13 +147,13 @@ void loop() {
           display.drawString(0, 0, "Humidity: " + String(humidityValue, 0) + "%");
           break;  
       case moisture:
-          display.drawString(0, 0, "Moisture: " + String(moistureValue / 1024 * 100) + "%");
+          display.drawString(0, 0, "Moisture: " + String(moistureValue));
           break;
       case pressure:
           display.drawString(0, 0, "Pressure: " + String(pressureValue, 0) + " hPa");
           break;
-      case lastWaterTime:
-          display.drawString(0, 0, String(wateringMotor.getLastWaterTime() / 1000, 0) + "s ago");
+      case waterTime:
+          display.drawString(0, 0, String(lastWaterTime / 1000) + "s ago");
           break;
       default:
           display.drawString(0, 0, "Watering system running");
