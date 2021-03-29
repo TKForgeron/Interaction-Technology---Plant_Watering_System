@@ -8,6 +8,7 @@ class MoistureSensor {
 private:
     int inputPinNumber;
     int outputPinNumber;
+    int maxValue;
 
 public:
     // Constructor

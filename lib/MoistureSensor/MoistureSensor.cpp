@@ -8,7 +8,9 @@ MoistureSensor::MoistureSensor(int inputPinNumber, int outputPinNumber){
     pinMode(inputPinNumber,INPUT);
 
     this->outputPinNumber = outputPinNumber;   
-    pinMode(outputPinNumber, OUTPUT);         
+    pinMode(outputPinNumber, OUTPUT);
+
+    this->maxValue = 1024;         
 };
 
 int MoistureSensor::getValue(){
@@ -16,5 +18,5 @@ int MoistureSensor::getValue(){
     digitalWrite(this->outputPinNumber, HIGH);
     int analogValue = analogRead(this->inputPinNumber);
     digitalWrite(this->outputPinNumber, LOW);
-    return analogValue;
+    return this->maxValue - analogValue;
 };
