@@ -28,7 +28,7 @@ void WateringMotor::giveWater(int angle, int duration)
   this->lastWaterTime = millis();
 
   delay(duration);
-  
+
   while (pos <= angle)
   {
     if (positionReachTimer.hasExpired())
@@ -45,4 +45,45 @@ void WateringMotor::giveWater(int angle, int duration)
 unsigned long WateringMotor::getLastWaterTime()
 {
   return millis() - this->lastWaterTime;
+}
+
+void WateringMotor::setLastWaterTimeInCorrectUnit()
+{
+  unsigned int waterTime = (int)(this->getLastWaterTime() / 1000);
+  unsigned int waterTimeCorrectedForUnit;
+  String unit = " seconds";
+
+  if (waterTime >= 60) // minute
+  {
+    waterTimeCorrectedForUnit = waterTime / 60;
+    unit = " minute";
+  }
+  else if (waterTime >= 60 * 2) // minutes
+  {
+    unit = " minutes";
+  }
+  else if (waterTime >= 60 * 60) // hour
+  {
+    waterTimeCorrectedForUnit = waterTime / (60 * 60);
+    unit = " hour";
+  }
+  else if (waterTime >= 60 * 60 * 2) // hours
+  {
+    unit = " hours";
+  }
+  else if (waterTime >= 60 * 60 * 24) // day
+  {
+    waterTimeCorrectedForUnit = waterTime / (60 * 60 * 24);
+    unit = " day";
+  }
+  else if (waterTime >= 60 * 60 * 24 * 2) // days
+  {
+    unit = " days";
+  }
+  else // if (waterTime < 60)
+  {
+    waterTimeCorrectedForUnit = waterTime;
+  }
+
+  this->lastWaterTimeInCorrectUnit = String(waterTimeCorrectedForUnit) + unit;
 }
