@@ -1,0 +1,65 @@
+2021-04-06 14:11:55,542 ERROR [JavaFX Application Thread     ] [BaseConfigurationUtils        ]  - Invalid number format 
+2021-04-06 14:11:55,945 ERROR [JavaFX Application Thread     ] [MqttStatsFileIO               ]  - Cannot read the statistics file from /home/noah/mqtt-spy/mqtt-spy-stats.xml
+java.io.FileNotFoundException: Cannot load the file from /home/noah/mqtt-spy/mqtt-spy-stats.xml
+	at pl.baczkowicz.spy.xml.XMLParser.loadFromFile(XMLParser.java:359)
+	at pl.baczkowicz.mqttspy.ui.stats.MqttStatsFileIO.loadStats(MqttStatsFileIO.java:57)
+	at pl.baczkowicz.spy.ui.stats.StatisticsManager.loadStats(StatisticsManager.java:298)
+	at pl.baczkowicz.mqttspy.ui.controllers.MqttSpyMainController.init(MqttSpyMainController.java:154)
+	at pl.baczkowicz.mqttspy.ui.MqttViewManager.createMainWindow(MqttViewManager.java:151)
+	at pl.baczkowicz.mqttspy.Main.start(Main.java:90)
+	at com.sun.javafx.application.LauncherImpl.lambda$launchApplication1$8(LauncherImpl.java:863)
+	at com.sun.javafx.application.PlatformImpl.lambda$runAndWait$7(PlatformImpl.java:326)
+	at com.sun.javafx.application.PlatformImpl.lambda$null$5(PlatformImpl.java:295)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at com.sun.javafx.application.PlatformImpl.lambda$runLater$6(PlatformImpl.java:294)
+	at com.sun.glass.ui.InvokeLaterDispatcher$Future.run(InvokeLaterDispatcher.java:95)
+	at com.sun.glass.ui.gtk.GtkApplication._runLoop(Native Method)
+	at com.sun.glass.ui.gtk.GtkApplication.lambda$null$10(GtkApplication.java:245)
+	at java.lang.Thread.run(Thread.java:748)
+2021-04-06 14:11:56,437 INFO  [JavaFX Application Thread     ] [MqttViewManager               ]  - Default configuration file present (/home/noah/mqtt-spy/mqtt-spy-configuration.xml) = false
+2021-04-06 14:12:01,014 ERROR [JavaFX Application Thread     ] [ControlPanelController        ]  - Cannot retrieve version info
+pl.baczkowicz.spy.exceptions.XMLException: Cannot read version info from http://baczkowicz.pl/mqtt-spy/version_0_6_0.xml?current=0.5.4-52
+	at pl.baczkowicz.spy.ui.versions.VersionManager.loadVersions(VersionManager.java:102)
+	at pl.baczkowicz.spy.ui.controllers.ControlPanelController$2.run(ControlPanelController.java:203)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.net.UnknownHostException: baczkowicz.pl
+	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:196)
+	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:394)
+	at java.net.Socket.connect(Socket.java:606)
+	at java.net.Socket.connect(Socket.java:555)
+	at sun.net.NetworkClient.doConnect(NetworkClient.java:180)
+	at sun.net.www.http.HttpClient.openServer(HttpClient.java:463)
+	at sun.net.www.http.HttpClient.openServer(HttpClient.java:558)
+	at sun.net.www.http.HttpClient.<init>(HttpClient.java:242)
+	at sun.net.www.http.HttpClient.New(HttpClient.java:339)
+	at sun.net.www.http.HttpClient.New(HttpClient.java:357)
+	at sun.net.www.protocol.http.HttpURLConnection.getNewHttpClient(HttpURLConnection.java:1226)
+	at sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1162)
+	at sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1056)
+	at sun.net.www.protocol.http.HttpURLConnection.connect(HttpURLConnection.java:990)
+	at sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1570)
+	at sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1498)
+	at java.net.URL.openStream(URL.java:1067)
+	at pl.baczkowicz.spy.ui.versions.VersionManager.loadVersions(VersionManager.java:94)
+	... 2 more
+2021-04-06 14:14:36,368 INFO  [JavaFX Application Thread     ] [MqttViewManager               ]  - Loading configuration file from /home/noah/mqtt-spy/mqtt-spy-configuration.xml
+2021-04-06 14:15:33,846 INFO  [JavaFX Application Thread     ] [EditConnectionsController     ]  - Selecting first item...
+2021-04-06 14:16:26,360 INFO  [JavaFX Application Thread     ] [MqttConfigurationUtils        ]  - Auto-complete for server URI (127.0.0.1:1883 -> tcp://127.0.0.1:1883)
+2021-04-06 14:16:26,367 ERROR [Thread-10                     ] [BaseConfigurationUtils        ]  - Invalid number format 
+2021-04-06 14:16:26,632 ERROR [JavaFX Application Thread     ] [FileUtils                     ]  - No files in /home/noah/mqtt-spy/
+2021-04-06 14:16:26,693 INFO  [JavaFX Application Thread     ] [NewSubscriptionController     ]  - Subscribing to /mqtt-spy/test/
+2021-04-06 14:16:26,693 INFO  [JavaFX Application Thread     ] [MqttSubscriptionViewManager   ]  - Creating subscription for /mqtt-spy/test/
+2021-04-06 14:16:27,198 INFO  [mqtt-spy [ConnectionRunnable for mqtt-spy@localhost]] [MqttAsyncConnectionRunnable   ]  - Connecting client ID [mqtt-spy] to server [[tcp://127.0.0.1:1883]]; options = 
+============== Connection options ==============
+CleanSession                :  true
+SocketFactory               :  null
+MqttVersion                 :  0
+KeepAliveInterval           :  60
+ConTimeout                  :  30
+UserName                    :  null
+SSLProperties               :  null
+WillDestination             :  null
+==========================================
+
+2021-04-06 14:16:27,246 INFO  [MQTT Call: mqtt-spy           ] [MqttConnectionResultHandler   ]  - mqtt-spy@localhost connected
+2021-04-06 14:16:27,250 INFO  [JavaFX Application Thread     ] [MqttEventHandler              ]  - About to resubscribe to all requested topics

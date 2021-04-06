@@ -56,31 +56,42 @@ void WateringMotor::setLastWaterTimeInCorrectUnit()
   if (waterTime >= 60) // minute
   {
     waterTimeCorrectedForUnit = waterTime / 60;
-    unit = " minute";
-  }
-  else if (waterTime >= 60 * 2) // minutes
-  {
-    unit = " minutes";
+    if (waterTime >= 60 * 2) // minutes
+    {
+      unit = " minutes";
+    }
+    else
+    {
+      unit = " minute";
+    }
   }
   else if (waterTime >= 60 * 60) // hour
   {
     waterTimeCorrectedForUnit = waterTime / (60 * 60);
-    unit = " hour";
-  }
-  else if (waterTime >= 60 * 60 * 2) // hours
-  {
-    unit = " hours";
+
+    if (waterTime >= 60 * 60 * 2) // hours
+    {
+      unit = " hours";
+    }
+    else
+    {
+      unit = " hour";
+    }
   }
   else if (waterTime >= 60 * 60 * 24) // day
   {
     waterTimeCorrectedForUnit = waterTime / (60 * 60 * 24);
-    unit = " day";
+
+    if (waterTime >= 60 * 60 * 24 * 2) // days
+    {
+      unit = " days";
+    }
+    else
+    {
+      unit = " day";
+    }
   }
-  else if (waterTime >= 60 * 60 * 24 * 2) // days
-  {
-    unit = " days";
-  }
-  else // if (waterTime < 60)
+  else // if (waterTime < 60) // seconds
   {
     waterTimeCorrectedForUnit = waterTime;
   }
