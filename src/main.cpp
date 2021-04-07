@@ -107,9 +107,9 @@ void mqttReconnect()
     {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("sensor/moisture", "hello world");
+      client.publish("infob3it/088/sensor/moisture", "hello world");
       // ... and resubscribe
-      client.subscribe("actuator/led");
+      client.subscribe("infob3it/088/actuator/led");
     }
     else
     {
@@ -171,7 +171,7 @@ void loop()
     snprintf(msg, MSG_BUFFER_SIZE, "test value #%ld", value);
     Serial.print("Publish message: ");
     Serial.println(msg);
-    client.publish("sensor/moisture", msg);
+    client.publish("infob3it/088/sensor/moisture", msg);
 
     Serial.println("");
     Serial.println("lightValue: " + String(amux.getLightValue()));
