@@ -19,7 +19,7 @@ PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
-int value = 0;
+unsigned long int value = 0;
 const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
 const char *mqttUser = "student088";
@@ -84,13 +84,13 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1')
   {
-    digitalWrite(BUILTIN_LED, LOW); // Turn the LED on (Note that LOW is the voltage level
+    digitalWrite(LED_BUILTIN, LOW); // Turn the LED on (Note that LOW is the voltage level
     // but actually the LED is on; this is because
     // it is active low on the ESP-01)
   }
   else
   {
-    digitalWrite(BUILTIN_LED, HIGH); // Turn the LED off by making the voltage HIGH
+    digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off by making the voltage HIGH
   }
 }
 
@@ -130,7 +130,7 @@ void setup()
   // Wifi connection
   Wifi wifi("Openhuis", "qzxvw123");
 
-  pinMode(BUILTIN_LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // MQTT connection
   client.setServer(mqttServer, mqttPort);
