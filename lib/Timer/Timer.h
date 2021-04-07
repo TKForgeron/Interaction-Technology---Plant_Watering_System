@@ -7,13 +7,14 @@
 #ifndef INFOB3IT_TIMER_H
 #define INFOB3IT_TIMER_H
 
-class Timer{ 
+class Timer
+{
 
 private:
     // Primitive types, therefore no reference
-    unsigned long msDelay;      // desired delay in milliseconds
-    unsigned long startTime;    // point the timer was started
-    bool running;               // true whenever timer running, false when ended
+    unsigned long msDelay;   // desired delay in milliseconds
+    unsigned long startTime; // point the timer was started
+    bool running;            // true whenever timer running, false when ended
 
 public:
     // Constructor

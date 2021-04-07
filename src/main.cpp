@@ -5,11 +5,11 @@
 #include <PubSubClient.h>
 
 // Internal includes
+#include "../lib/Amux/Amux.h"
 #include "../lib/BinaryActuator/Led/Led.h"
-#include "../lib/MoistureSensor/MoistureSensor.h"
 #include "../lib/BinarySwitch/BinarySwitch.h"
-#include "../lib/Timer/Timer.h"
 #include "../lib/Oled/Oled.h"
+#include "../lib/Timer/Timer.h"
 #include "../lib/WateringMotor/WateringMotor.h"
 #include "../lib/Wifi/Wifi.h"
 
@@ -20,7 +20,10 @@ unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
-const char *mqtt_server = "broker.mqtt-dashboard.com";
+const char *mqttServer = "mqtt.uu.nl";
+const int mqttPort = 1883;
+const char *mqttUser = "student088";
+const char *mqttPassword = "JqM5xmPe";
 
 // State enumerations
 enum Mode
@@ -40,7 +43,7 @@ enum DisplayState
 
 // Sensors
 BinarySwitch modeButton(D3);
-MoistureSensor moistureSensor(A0, D4);
+Amux amux(D4, A0); // moisture & light
 Adafruit_BME280 bme;
 
 // Actuators
@@ -49,6 +52,7 @@ WateringMotor wateringMotor(D6);
 Led builtInLed(D0);
 
 // Timers
+Timer serialPrintTimer;
 Timer readSensorTimer;
 Timer rotateStateTimer;
 
@@ -58,6 +62,7 @@ DisplayState displayState = temperature;
 unsigned long readSensorDelay = 10000;
 unsigned long rotateStateDelay = 5000;
 int buttonDebounce = 500;
+int lightValue;
 int moistureValue;
 float temperatureValue;
 float humidityValue;
@@ -65,7 +70,7 @@ float pressureValue;
 int moistureThreshold = 0;
 unsigned long lastWaterTime;
 
-void callback(char *topic, byte *payload, unsigned int length)
+void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -89,31 +94,30 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
 }
 
-void reconnect()
+void mqttReconnect()
 {
   // Loop until we're reconnected
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
-    String clientId = "ESP8266Client-";
-    clientId += String(random(0xffff), HEX);
+    // Create a client ID
+    String clientId = "tim";
     // Attempt to connect
-    if (client.connect(clientId.c_str()))
+    if (client.connect(clientId.c_str(), mqttUser, mqttPassword))
     {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("outTopic", "hello world");
+      client.publish("sensor/moisture", "hello world");
       // ... and resubscribe
-      client.subscribe("inTopic");
+      client.subscribe("actuator/led");
     }
     else
     {
-      Serial.print("failed, rc=");
+      Serial.print("failed with state ");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+      Serial.println(" try again in 2 seconds");
+      // Wait 2 seconds before retrying
+      delay(2000);
     }
   }
 }
@@ -129,19 +133,21 @@ void setup()
   pinMode(BUILTIN_LED, OUTPUT);
 
   // MQTT connection
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
+  client.setServer(mqttServer, mqttPort);
+  client.setCallback(mqttCallback);
 
   // BME init
   Wire.begin(D7, D5);
   unsigned status = bme.begin(0x76);
 
   // Intial Values
-  moistureValue = moistureSensor.getValue();
+  lightValue = amux.getLightValue();
+  moistureValue = amux.getMoistureValue();
   temperatureValue = bme.readTemperature();
   humidityValue = bme.readHumidity();
   pressureValue = bme.readPressure() / 100.0F;
 
+  serialPrintTimer.start(1000);
   readSensorTimer.start(readSensorDelay);
   rotateStateTimer.start(rotateStateDelay);
 
@@ -154,37 +160,43 @@ void loop()
 {
   if (!client.connected())
   {
-    reconnect();
+    mqttReconnect();
   }
   client.loop();
 
-  unsigned long now = millis();
-  if (now - lastMsg > 2000)
+  if (serialPrintTimer.hasExpired())
   {
-    lastMsg = now;
+    serialPrintTimer.repeat();
     ++value;
-    snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", value);
+    snprintf(msg, MSG_BUFFER_SIZE, "test value #%ld", value);
     Serial.print("Publish message: ");
     Serial.println(msg);
-    client.publish("outTopic", msg);
-  }
+    client.publish("sensor/moisture", msg);
 
-  // Serial.println("moistureValue: " + moistureValue);
-  // Serial.println("wateringMotor.getLastWaterTime(): " + wateringMotor.getLastWaterTime());
+    Serial.println("");
+    Serial.println("lightValue: " + String(amux.getLightValue()));
+    Serial.println("moistureValue: " + String(amux.getMoistureValue()));
+    Serial.println("------------------------");
+    Serial.println("");
+    Serial.println("");
+  }
 
   if (readSensorTimer.hasExpired())
   {
-    moistureValue = moistureSensor.getValue();
+    readSensorTimer.repeat();
+
+    lightValue = amux.getLightValue();
+    moistureValue = amux.getMoistureValue();
     temperatureValue = bme.readTemperature();
     humidityValue = bme.readHumidity();
     pressureValue = bme.readPressure() / 100.0F;
     lastWaterTime = wateringMotor.getLastWaterTime();
-
-    readSensorTimer.repeat();
   }
 
   if (rotateStateTimer.hasExpired())
   {
+    rotateStateTimer.repeat();
+
     switch (displayState)
     {
     case temperature:
@@ -208,7 +220,6 @@ void loop()
     }
 
     display.clearLine(0, 20);
-    rotateStateTimer.repeat();
   }
 
   if (mode == automatic)
@@ -234,7 +245,6 @@ void loop()
   }
   else if (mode == manual)
   {
-
     builtInLed.off();
 
     if (modeButton.getState())
