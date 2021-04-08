@@ -18,12 +18,21 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
-char msg[MSG_BUFFER_SIZE];
-unsigned long int value = 0;
+char moisturePub[MSG_BUFFER_SIZE];
+char pressurePub[MSG_BUFFER_SIZE];
+char humidityPub[MSG_BUFFER_SIZE];
+char temperaturePub[MSG_BUFFER_SIZE];
+char lightPub[MSG_BUFFER_SIZE];
+char modePub[MSG_BUFFER_SIZE];
 const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
 const char *mqttUser = "student088";
 const char *mqttPassword = "JqM5xmPe";
+String clientId = "plantWateringSystem";
+const char *mqttWillMessage = "offline";
+String mqttWillTopic = "infob3it/088/" + clientId + "/status";
+byte mqttWillQoS = 0;
+boolean mqttWillRetain = true;
 
 // State enumerations
 enum Mode
@@ -55,42 +64,118 @@ Led builtInLed(D0);
 Timer serialPrintTimer;
 Timer readSensorTimer;
 Timer rotateStateTimer;
+Timer publishModeTimer;
 
 // Globals
 Mode mode = automatic;
 DisplayState displayState = temperature;
-unsigned long readSensorDelay = 10000;
+unsigned long readSensorDelay = 1000 * 60 * 1 / 2; // per 1/2 minute(s)
 unsigned long rotateStateDelay = 5000;
-int buttonDebounce = 500;
+unsigned long publishModeDelay = 500;
+int modeButtonDebounce = 500;
 int lightValue;
 int moistureValue;
 float temperatureValue;
 float humidityValue;
 float pressureValue;
-int moistureThreshold = 0;
+int moistureThreshold = 0; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 unsigned long lastWaterTime;
+
+void readAllSensorValues()
+{
+  humidityValue = bme.readHumidity();
+  lastWaterTime = wateringMotor.getLastWaterTime();
+  lightValue = amux.getLightValue();
+  moistureValue = amux.getMoistureValue();
+  pressureValue = bme.readPressure() / 100.0F;
+  temperatureValue = bme.readTemperature();
+}
+
+void publishAllSensorValues(bool isInitPublish = false)
+{
+  if (isInitPublish)
+  {
+    Serial.println("initial publish");
+    client.publish("infob3it/088/sensor/moisture", "moisture connection setup");
+    client.publish("infob3it/088/sensor/pressure", "pressure connection setup");
+    client.publish("infob3it/088/sensor/temperature", "temperature connection setup");
+    client.publish("infob3it/088/sensor/light", "light connection setup");
+    client.publish("infob3it/088/sensor/humidity", "humidity connection setup");
+  }
+  else
+  {
+    Serial.println("publishing all sensor values");
+    snprintf(humidityPub, MSG_BUFFER_SIZE, "%s", String(humidityValue, 0).c_str()); // to percent
+    client.publish("infob3it/088/sensor/humidity", humidityPub);
+
+    snprintf(lightPub, MSG_BUFFER_SIZE, "%s", String(lightValue / 1024 * 100).c_str()); // to percent
+    client.publish("infob3it/088/sensor/light", lightPub);
+
+    snprintf(moisturePub, MSG_BUFFER_SIZE, "%s", String(moistureValue / 1024 * 100).c_str()); // to percent
+    client.publish("infob3it/088/sensor/moisture", moisturePub);
+
+    snprintf(pressurePub, MSG_BUFFER_SIZE, "%s", String(pressureValue, 0).c_str()); // floor
+    client.publish("infob3it/088/sensor/pressure", pressurePub);
+
+    snprintf(temperaturePub, MSG_BUFFER_SIZE, "%s", String(temperatureValue, 1).c_str()); // to one decimal
+    client.publish("infob3it/088/sensor/temperature", temperaturePub);
+  }
+}
+
+void waterPlantActions()
+{
+  display.drawString(0, 44, "Watering...");
+  display.display();
+  wateringMotor.giveWater(120, 10000);
+  display.clearLine(44, 20);
+}
 
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++)
+  for (unsigned int i = 0; i < length; i++)
   {
     Serial.print((char)payload[i]);
   }
   Serial.println();
 
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1')
+  if (String(topic).endsWith(String("wateringmotor")))
   {
-    digitalWrite(LED_BUILTIN, LOW); // Turn the LED on (Note that LOW is the voltage level
-    // but actually the LED is on; this is because
-    // it is active low on the ESP-01)
+    // give water if an 1 was received as first character
+    if ((char)payload[0] == '1')
+    {
+      if (mode == manual)
+      {
+        Serial.println("Give water (manual)");
+        waterPlantActions();
+      }
+    }
   }
-  else
+  else if (String(topic).endsWith(String("sub/mode")))
   {
-    digitalWrite(LED_BUILTIN, HIGH); // Turn the LED off by making the voltage HIGH
+    // Switch on the LED if an 1 was received as first character
+    if ((char)payload[0] == '1')
+    {
+      Serial.println("setting mode to automatic");
+      mode = automatic;
+    }
+    else
+    {
+      Serial.println("setting mode to manual");
+      mode = manual;
+    }
+  }
+  else if (String(topic).endsWith(String("allSensorValues")))
+  {
+    // Switch on the LED if an 1 was received as first character
+    if ((char)payload[0] == '1')
+    {
+      Serial.println("refreshing sensorvals");
+      readAllSensorValues();
+      publishAllSensorValues();
+    }
   }
 }
 
@@ -100,16 +185,17 @@ void mqttReconnect()
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    // Create a client ID
-    String clientId = "tim";
     // Attempt to connect
-    if (client.connect(clientId.c_str(), mqttUser, mqttPassword))
+    if (client.connect(clientId.c_str(), mqttUser, mqttPassword, mqttWillTopic.c_str(), mqttWillQoS, mqttWillRetain, mqttWillMessage))
     {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("infob3it/088/sensor/moisture", "hello world");
+      publishAllSensorValues(true); // true, because this is the initial publish for all sensor values
+      client.publish("infob3it/088/pub/mode", "mode connection setup");
       // ... and resubscribe
-      client.subscribe("infob3it/088/actuator/led");
+      client.subscribe("infob3it/088/actuator/wateringmotor");
+      client.subscribe("infob3it/088/sub/mode");
+      client.subscribe("infob3it/088/allSensorValues");
     }
     else
     {
@@ -129,8 +215,8 @@ void setup()
 
   // Wifi connection
   Wifi wifi("Openhuis", "qzxvw123");
-
-  pinMode(LED_BUILTIN, OUTPUT);
+  // Wifi wifi("Openhuis-iot", "internetofthings");
+  // Wifi wifi("Kouros", "interactietech");
 
   // MQTT connection
   client.setServer(mqttServer, mqttPort);
@@ -141,14 +227,11 @@ void setup()
   unsigned status = bme.begin(0x76);
 
   // Intial Values
-  lightValue = amux.getLightValue();
-  moistureValue = amux.getMoistureValue();
-  temperatureValue = bme.readTemperature();
-  humidityValue = bme.readHumidity();
-  pressureValue = bme.readPressure() / 100.0F;
+  readAllSensorValues();
 
   serialPrintTimer.start(1000);
   readSensorTimer.start(readSensorDelay);
+  publishModeTimer.start(publishModeDelay);
   rotateStateTimer.start(rotateStateDelay);
 
   display.init();
@@ -158,39 +241,34 @@ void setup()
 
 void loop()
 {
+  if (serialPrintTimer.hasExpired())
+  {
+    serialPrintTimer.repeat();
+
+    Serial.println("------------------------");
+    Serial.println("");
+  }
+
   if (!client.connected())
   {
     mqttReconnect();
   }
   client.loop();
 
-  if (serialPrintTimer.hasExpired())
+  if (publishModeTimer.hasExpired())
   {
-    serialPrintTimer.repeat();
-    ++value;
-    snprintf(msg, MSG_BUFFER_SIZE, "test value #%ld", value);
-    Serial.print("Publish message: ");
-    Serial.println(msg);
-    client.publish("infob3it/088/sensor/moisture", msg);
+    publishModeTimer.repeat();
 
-    Serial.println("");
-    Serial.println("lightValue: " + String(amux.getLightValue()));
-    Serial.println("moistureValue: " + String(amux.getMoistureValue()));
-    Serial.println("------------------------");
-    Serial.println("");
-    Serial.println("");
+    snprintf(modePub, MSG_BUFFER_SIZE, "%i", mode);
+    client.publish("infob3it/088/pub/mode", modePub);
   }
 
   if (readSensorTimer.hasExpired())
   {
     readSensorTimer.repeat();
 
-    lightValue = amux.getLightValue();
-    moistureValue = amux.getMoistureValue();
-    temperatureValue = bme.readTemperature();
-    humidityValue = bme.readHumidity();
-    pressureValue = bme.readPressure() / 100.0F;
-    lastWaterTime = wateringMotor.getLastWaterTime();
+    readAllSensorValues();
+    publishAllSensorValues();
   }
 
   if (rotateStateTimer.hasExpired())
@@ -219,24 +297,21 @@ void loop()
       break;
     }
 
-    display.clearLine(0, 20);
+    display.clearLine(0, 40);
   }
 
   if (mode == automatic)
   {
     if (moistureValue < moistureThreshold)
     {
-      display.drawString(0, 44, "Watering...");
-      display.display();
-      wateringMotor.giveWater(120, 10000);
-      display.clearLine(44, 20);
+      waterPlantActions();
     }
 
     builtInLed.on();
 
     if (modeButton.getState())
     {
-      if (millis() >= modeButton.lastPressed + buttonDebounce)
+      if (millis() >= modeButton.lastPressed + modeButtonDebounce)
       {
         mode = manual;
         modeButton.lastPressed = millis();
@@ -249,7 +324,7 @@ void loop()
 
     if (modeButton.getState())
     {
-      if (millis() >= modeButton.lastPressed + buttonDebounce)
+      if (millis() >= modeButton.lastPressed + modeButtonDebounce)
       {
         mode = automatic;
         modeButton.lastPressed = millis();
@@ -260,7 +335,8 @@ void loop()
   switch (displayState)
   {
   case temperature:
-    display.drawString(0, 0, "Temperature: " + String(temperatureValue, 1) + " *C");
+    display.drawString(0, 0, "Temperature:");
+    display.drawString(0, 20, String(temperatureValue, 1) + " *C");
     wateringMotor.setLastWaterTimeInCorrectUnit(); // it is done here, so when in waterTime state, displayed time does not change
     break;
   case waterTime:
@@ -270,10 +346,11 @@ void loop()
     display.drawString(0, 0, "Humidity: " + String(humidityValue, 0) + "%");
     break;
   case moisture:
-    display.drawString(0, 0, "Moisture: " + String(moistureValue));
+    display.drawString(0, 0, "Moisture: " + String(moistureValue / 1024 * 100) + "%");
     break;
   case pressure:
-    display.drawString(0, 0, "Pressure: " + String(pressureValue, 0) + " hPa");
+    display.drawString(0, 0, "Pressure:");
+    display.drawString(0, 20, String(pressureValue, 0) + " hPa");
     break;
   default:
     display.drawString(0, 0, "Watering system running");

@@ -18,14 +18,14 @@ int Amux::getAnalogValue()
     int analogValue = analogRead(this->analogReadPin);
     digitalWrite(this->selectPin, LOW);
 
-    return this->maxValue - analogValue;
+    return analogValue;
 }
 
 int Amux::getMoistureValue()
 {
     digitalWrite(this->selectPin, HIGH);
 
-    return this->getAnalogValue();
+    return this->maxValue - this->getAnalogValue();
 };
 
 int Amux::getLightValue()

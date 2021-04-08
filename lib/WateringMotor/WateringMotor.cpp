@@ -27,7 +27,9 @@ void WateringMotor::giveWater(int angle, int duration)
 
   this->lastWaterTime = millis();
 
+  yield();
   delay(duration);
+  yield();
 
   while (pos <= angle)
   {

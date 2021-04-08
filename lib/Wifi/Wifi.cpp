@@ -14,6 +14,7 @@ Wifi::Wifi(char *ssid, char *password)
     Serial.print("Connecting to ");
     Serial.print(ssid);
 
+    // WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
