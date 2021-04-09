@@ -29,9 +29,9 @@ const int mqttPort = 1883;
 const char *mqttUser = "student088";
 const char *mqttPassword = "JqM5xmPe";
 const std::string clientId = "plantWateringSystem";
-const std::string stdTopicPrefix = "infob3it/088/" + clientId;
+const std::string stdTopicPrefix = "infob3it/088/" + clientId + "/";
 const char *mqttWillMessage = "Offline...";
-const std::string mqttWillTopic = stdTopicPrefix + "/status";
+const std::string mqttWillTopic = stdTopicPrefix + "status";
 byte mqttWillQoS = 0;
 boolean mqttWillRetain = true;
 boolean mqttCleanSession = true;
@@ -54,7 +54,7 @@ enum DisplayState
 
 // Sensors
 BinarySwitch modeButton(D3);
-Amux amux(D4, A0); // moisture & light
+Amux amux(D4, A0); // moisture & light, but also works when only moisture is hooked up
 Adafruit_BME280 bme;
 
 // Actuators
