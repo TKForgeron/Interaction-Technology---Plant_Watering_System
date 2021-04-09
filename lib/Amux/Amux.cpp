@@ -23,12 +23,16 @@ int Amux::getAnalogValue()
 
 int Amux::getMoistureValue()
 {
+    int moist = this->getAnalogValue();
     digitalWrite(this->selectPin, HIGH);
-
-    return this->maxValue - this->getAnalogValue();
+    Serial.print("moist: ");
+    Serial.println(moist);
+    return this->maxValue - moist;
 };
 
 int Amux::getLightValue()
 {
+    Serial.print("light: ");
+    Serial.println(this->getAnalogValue());
     return this->getAnalogValue();
 };
