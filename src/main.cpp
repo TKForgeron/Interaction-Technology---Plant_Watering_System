@@ -348,7 +348,7 @@ void loop()
     display.drawString(0, 0, "Humidity: " + String(humidityValue, 0) + "%");
     break;
   case moisture:
-    display.drawString(0, 0, "Moisture: " + String(moistureValue / 1024 * 100) + "%");
+    display.drawString(0, 0, "Soil moisture: " + String(moistureValue / 1024 * 100) + "%");
     break;
   case pressure:
     display.drawString(0, 0, "Pressure:");
