@@ -28,11 +28,13 @@ const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
 const char *mqttUser = "student088";
 const char *mqttPassword = "JqM5xmPe";
-String clientId = "plantWateringSystem";
-const char *mqttWillMessage = "offline";
-String mqttWillTopic = "infob3it/088/" + clientId + "/status";
+const std::string clientId = "plantWateringSystem";
+const std::string stdTopicPrefix = "infob3it/088/" + clientId;
+const char *mqttWillMessage = "Offline...";
+const std::string mqttWillTopic = stdTopicPrefix + "/status";
 byte mqttWillQoS = 0;
 boolean mqttWillRetain = true;
+boolean mqttCleanSession = true;
 
 // State enumerations
 enum Mode
@@ -96,29 +98,29 @@ void publishAllSensorValues(bool isInitPublish = false)
   if (isInitPublish)
   {
     Serial.println("initial publish");
-    client.publish("infob3it/088/sensor/moisture", "moisture connection setup");
-    client.publish("infob3it/088/sensor/pressure", "pressure connection setup");
-    client.publish("infob3it/088/sensor/temperature", "temperature connection setup");
-    client.publish("infob3it/088/sensor/light", "light connection setup");
-    client.publish("infob3it/088/sensor/humidity", "humidity connection setup");
+    client.publish((stdTopicPrefix + "sensor/moisture").c_str(), "moisture connection setup");
+    client.publish((stdTopicPrefix + "sensor/pressure").c_str(), "pressure connection setup");
+    client.publish((stdTopicPrefix + "sensor/temperature").c_str(), "temperature connection setup");
+    client.publish((stdTopicPrefix + "sensor/light").c_str(), "light connection setup");
+    client.publish((stdTopicPrefix + "sensor/humidity").c_str(), "humidity connection setup");
   }
   else
   {
     Serial.println("publishing all sensor values");
     snprintf(humidityPub, MSG_BUFFER_SIZE, "%s", String(humidityValue, 0).c_str()); // to percent
-    client.publish("infob3it/088/sensor/humidity", humidityPub);
+    client.publish((stdTopicPrefix + "sensor/humidity").c_str(), humidityPub);
 
     snprintf(lightPub, MSG_BUFFER_SIZE, "%s", String(lightValue / 1024 * 100).c_str()); // to percent
-    client.publish("infob3it/088/sensor/light", lightPub);
+    client.publish((stdTopicPrefix + "sensor/light").c_str(), lightPub);
 
     snprintf(moisturePub, MSG_BUFFER_SIZE, "%s", String(moistureValue / 1024 * 100).c_str()); // to percent
-    client.publish("infob3it/088/sensor/moisture", moisturePub);
+    client.publish((stdTopicPrefix + "sensor/moisture").c_str(), moisturePub);
 
     snprintf(pressurePub, MSG_BUFFER_SIZE, "%s", String(pressureValue, 0).c_str()); // floor
-    client.publish("infob3it/088/sensor/pressure", pressurePub);
+    client.publish((stdTopicPrefix + "sensor/pressure").c_str(), pressurePub);
 
     snprintf(temperaturePub, MSG_BUFFER_SIZE, "%s", String(temperatureValue, 1).c_str()); // to one decimal
-    client.publish("infob3it/088/sensor/temperature", temperaturePub);
+    client.publish((stdTopicPrefix + "sensor/temperature").c_str(), temperaturePub);
   }
 }
 
@@ -186,16 +188,16 @@ void mqttReconnect()
   {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(clientId.c_str(), mqttUser, mqttPassword, mqttWillTopic.c_str(), mqttWillQoS, mqttWillRetain, mqttWillMessage))
+    if (client.connect(clientId.c_str(), mqttUser, mqttPassword, mqttWillTopic.c_str(), mqttWillQoS, mqttWillRetain, mqttWillMessage, mqttCleanSession))
     {
       Serial.println("connected");
       // Once connected, publish an announcement...
       publishAllSensorValues(true); // true, because this is the initial publish for all sensor values
-      client.publish("infob3it/088/pub/mode", "mode connection setup");
+      client.publish((stdTopicPrefix + "pub/mode").c_str(), "mode connection setup");
       // ... and resubscribe
-      client.subscribe("infob3it/088/actuator/wateringmotor");
-      client.subscribe("infob3it/088/sub/mode");
-      client.subscribe("infob3it/088/allSensorValues");
+      client.subscribe((stdTopicPrefix + "actuator/wateringmotor").c_str());
+      client.subscribe((stdTopicPrefix + "sub/mode").c_str());
+      client.subscribe((stdTopicPrefix + "allSensorValues").c_str());
     }
     else
     {
@@ -260,7 +262,7 @@ void loop()
     publishModeTimer.repeat();
 
     snprintf(modePub, MSG_BUFFER_SIZE, "%i", mode);
-    client.publish("infob3it/088/pub/mode", modePub);
+    client.publish((stdTopicPrefix + "pub/mode").c_str(), modePub);
   }
 
   if (readSensorTimer.hasExpired())
