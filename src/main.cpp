@@ -14,7 +14,7 @@
 #include "../lib/Wifi/Wifi.h"
 
 // Initialize WiFi connection
-Wifi wifi("Openhuis", "qzxvw123");
+Wifi wifi("placeholder", "placeholder");
 
 // MQTT connection
 WiFiClient espClient;
@@ -29,10 +29,10 @@ char lightPub[MSG_BUFFER_SIZE];
 char modePub[MSG_BUFFER_SIZE];
 const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
-const char *mqttUser = "student088";
-const char *mqttPassword = "JqM5xmPe";
+const char *mqttUser = "placeholder";
+const char *mqttPassword = "placeholder";
 const std::string clientId = "plantWateringSystem";
-const std::string stdTopicPrefix = "infob3it/088/" + clientId + "/";
+const std::string stdTopicPrefix = "infob3it/placeholder/" + clientId + "/";
 const char *mqttWillMessage = "Offline";
 const std::string mqttWillTopic = stdTopicPrefix + "status";
 byte mqttWillQoS = 0;
