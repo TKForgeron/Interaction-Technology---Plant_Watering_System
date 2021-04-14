@@ -17,7 +17,7 @@
 WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE (50)
+#define MSG_BUFFER_SIZE (16)
 char moisturePub[MSG_BUFFER_SIZE];
 char pressurePub[MSG_BUFFER_SIZE];
 char humidityPub[MSG_BUFFER_SIZE];
@@ -26,8 +26,8 @@ char lightPub[MSG_BUFFER_SIZE];
 char modePub[MSG_BUFFER_SIZE];
 const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
-const char *mqttUser = "fakeUser";
-const char *mqttPassword = "fakePassword";
+const char *mqttUser = "student088";
+const char *mqttPassword = "JqM5xmPe";
 const std::string clientId = "plantWateringSystem";
 const std::string stdTopicPrefix = "infob3it/088/" + clientId + "/";
 const char *mqttWillMessage = "Offline";
@@ -79,7 +79,7 @@ float moistureValue;
 float temperatureValue;
 float humidityValue;
 float pressureValue;
-int moistureThreshold = 30; 
+int moistureThreshold = 30;
 unsigned long lastWaterTime;
 
 void readAllSensorValues()
@@ -211,27 +211,29 @@ void mqttReconnect()
 
 void setup()
 {
-  // Serial monitor (baud)
+  // Initialize Serial monitor (baud rate)
   Serial.begin(115200);
 
-  // Wifi connection
-  Wifi wifi("fakeSSID","fakePassword");
+  // Initialize WiFi connection
+  Wifi wifi("Openhuis", "qzxvw123");
 
-  // MQTT connection
+  // Initialize MQTT connection
   client.setServer(mqttServer, mqttPort);
   client.setCallback(mqttCallback);
 
-  // BME init
+  // Initialize BME
   Wire.begin(D7, D5);
   unsigned status = bme.begin(0x76);
 
-  // Intial Values
+  // Get initial Values
   readAllSensorValues();
 
+  // Setting Timers
   readSensorTimer.start(readSensorDelay);
   publishModeTimer.start(publishModeDelay);
   rotateStateTimer.start(rotateStateDelay);
 
+  // Initialize OLED
   display.init();
   display.flipScreenVertically();
   display.setFont(ArialMT_Plain_16);
