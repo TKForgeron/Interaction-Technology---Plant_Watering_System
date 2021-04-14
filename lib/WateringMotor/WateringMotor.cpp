@@ -19,15 +19,15 @@ void WateringMotor::giveWater(int angle, int duration)
   { // goes from 180 degrees to 0 degrees
     if (positionReachTimer.hasExpired())
     {
+      positionReachTimer.repeat();
+
       this->write(pos);
       pos -= 1;
-      positionReachTimer.repeat();
     }
   }
 
   this->lastWaterTime = millis();
 
-  yield();
   delay(duration);
   yield();
 
@@ -35,9 +35,10 @@ void WateringMotor::giveWater(int angle, int duration)
   {
     if (positionReachTimer.hasExpired())
     {
+      positionReachTimer.repeat();
+
       this->write(pos);
       pos += 1;
-      positionReachTimer.repeat();
     }
   }
 
@@ -55,16 +56,17 @@ void WateringMotor::setLastWaterTimeInCorrectUnit()
   unsigned int waterTimeCorrectedForUnit;
   String unit = " seconds";
 
-  if (waterTime >= 60) // minute
+  if (waterTime >= 60 * 60 * 24) // day
   {
-    waterTimeCorrectedForUnit = waterTime / 60;
-    if (waterTime >= 60 * 2) // minutes
+    waterTimeCorrectedForUnit = waterTime / (60 * 60 * 24);
+
+    if (waterTime >= 60 * 60 * 24 * 2) // days
     {
-      unit = " minutes";
+      unit = " days";
     }
     else
     {
-      unit = " minute";
+      unit = " day";
     }
   }
   else if (waterTime >= 60 * 60) // hour
@@ -80,17 +82,16 @@ void WateringMotor::setLastWaterTimeInCorrectUnit()
       unit = " hour";
     }
   }
-  else if (waterTime >= 60 * 60 * 24) // day
+  else if (waterTime >= 60) // minute
   {
-    waterTimeCorrectedForUnit = waterTime / (60 * 60 * 24);
-
-    if (waterTime >= 60 * 60 * 24 * 2) // days
+    waterTimeCorrectedForUnit = waterTime / 60;
+    if (waterTime >= 60 * 2) // minutes
     {
-      unit = " days";
+      unit = " minutes";
     }
     else
     {
-      unit = " day";
+      unit = " minute";
     }
   }
   else // if (waterTime < 60) // seconds

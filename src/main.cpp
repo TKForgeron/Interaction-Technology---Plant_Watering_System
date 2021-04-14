@@ -13,6 +13,9 @@
 #include "../lib/WateringMotor/WateringMotor.h"
 #include "../lib/Wifi/Wifi.h"
 
+// Initialize WiFi connection
+Wifi wifi("Openhuis", "qzxvw123");
+
 // MQTT connection
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -66,6 +69,8 @@ Led builtInLed(D0);
 Timer readSensorTimer;
 Timer rotateStateTimer;
 Timer publishModeTimer;
+Timer mqttReconnectTimer;
+Timer wifiLoadingTimer;
 
 // Globals
 Mode mode = automatic;
@@ -73,6 +78,7 @@ DisplayState displayState = temperature;
 unsigned long readSensorDelay = 1000 * 60 * 1 / 2; // per 1/2 minute(s)
 unsigned long rotateStateDelay = 5000;
 unsigned long publishModeDelay = 500;
+unsigned long mqttReconnectDelay = 5000;
 int modeButtonDebounce = 500;
 float lightValue;
 float moistureValue;
@@ -96,6 +102,7 @@ void publishAllSensorValues(bool isInitPublish = false)
 {
   if (isInitPublish)
   {
+    client.publish(mqttWillTopic.c_str(), "Online");
     client.publish((stdTopicPrefix + "sensor/moisture").c_str(), "moisture connection setup");
     client.publish((stdTopicPrefix + "sensor/pressure").c_str(), "pressure connection setup");
     client.publish((stdTopicPrefix + "sensor/temperature").c_str(), "temperature connection setup");
@@ -126,7 +133,7 @@ void waterPlantActions()
 {
   display.drawString(0, 44, "Watering...");
   display.display();
-  wateringMotor.giveWater(120, 10000);
+  wateringMotor.giveWater(150, 10000);
   display.clearLine(44, 20);
 }
 
@@ -180,32 +187,25 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 }
 
 void mqttReconnect()
-{
-  // Loop until we're reconnected
-  while (!client.connected())
+{ // inspiration taken from:
+  // https://github.com/knolleary/pubsubclient/blob/master/examples/mqtt_reconnect_nonblocking/mqtt_reconnect_nonblocking.ino
+  if (client.connect(clientId.c_str(), mqttUser, mqttPassword, mqttWillTopic.c_str(), mqttWillQoS, mqttWillRetain, mqttWillMessage, mqttCleanSession))
   {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect(clientId.c_str(), mqttUser, mqttPassword, mqttWillTopic.c_str(), mqttWillQoS, mqttWillRetain, mqttWillMessage, mqttCleanSession))
-    {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      publishAllSensorValues(true); // true, because this is the initial publish for all sensor values
-      client.publish(mqttWillTopic.c_str(), "Online");
-      client.publish((stdTopicPrefix + "pub/mode").c_str(), "mode connection setup");
-      // ... and resubscribe
-      client.subscribe((stdTopicPrefix + "actuator/wateringmotor").c_str());
-      client.subscribe((stdTopicPrefix + "sub/mode").c_str());
-      client.subscribe((stdTopicPrefix + "allSensorValues").c_str());
-    }
-    else
-    {
-      Serial.print("failed with state ");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
+    Serial.println("connected");
+    // Once connected, publish an announcement...
+    publishAllSensorValues(true); // true, because this is the initial publish for all sensor values
+    client.publish(mqttWillTopic.c_str(), "Online");
+    client.publish((stdTopicPrefix + "pub/mode").c_str(), "mode connection setup");
+    // ... and resubscribe
+    client.subscribe((stdTopicPrefix + "actuator/wateringmotor").c_str());
+    client.subscribe((stdTopicPrefix + "sub/mode").c_str());
+    client.subscribe((stdTopicPrefix + "allSensorValues").c_str());
+  }
+  else
+  {
+    Serial.print("failed to connect to MQTT Broker");
+    Serial.print(client.state());
+    Serial.println(" trying again in 5 seconds...");
   }
 }
 
@@ -214,16 +214,13 @@ void setup()
   // Initialize Serial monitor (baud rate)
   Serial.begin(115200);
 
-  // Initialize WiFi connection
-  Wifi wifi("Openhuis", "qzxvw123");
-
   // Initialize MQTT connection
   client.setServer(mqttServer, mqttPort);
   client.setCallback(mqttCallback);
 
   // Initialize BME
   Wire.begin(D7, D5);
-  unsigned status = bme.begin(0x76);
+  bme.begin(0x76);
 
   // Get initial Values
   readAllSensorValues();
@@ -232,6 +229,8 @@ void setup()
   readSensorTimer.start(readSensorDelay);
   publishModeTimer.start(publishModeDelay);
   rotateStateTimer.start(rotateStateDelay);
+  mqttReconnectTimer.start(mqttReconnectDelay);
+  wifiLoadingTimer.start(500);
 
   // Initialize OLED
   display.init();
@@ -241,12 +240,22 @@ void setup()
 
 void loop()
 {
+  wifiLoadingTimer = wifi.printStatus(wifiLoadingTimer);
 
   if (!client.connected())
-  {
-    mqttReconnect();
+  { // client not connected
+    if (mqttReconnectTimer.hasExpired())
+    {
+      mqttReconnectTimer.repeat();
+
+      // Attempt to reconnect
+      mqttReconnect();
+    }
   }
-  client.loop();
+  else
+  { // client connected
+    client.loop();
+  }
 
   if (publishModeTimer.hasExpired())
   {

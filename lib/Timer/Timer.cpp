@@ -24,7 +24,7 @@ void Timer::stop()
 void Timer::repeat()
 {
     running = true;                  // mark this object as running
-    startTime = startTime + msDelay; // update startTime, so timer is not expired yet
+    startTime = startTime + msDelay; // update startTime, so timer has not expired yet
 }
 
 // returns true when delay/timer has expired, while it was running, and stops timer in that case
