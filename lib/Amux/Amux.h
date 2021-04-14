@@ -8,15 +8,14 @@ class Amux
 private:
     int selectPin;
     int analogReadPin;
-    int maxValue;
-    int getAnalogValue();
+    float getAnalogValue();
 
 public:
     // Constructor
     Amux(int selectPin, int analogReadPin);
     // Methods
-    int getMoistureValue();
-    int getLightValue();
+    float getMoistureValue();
+    float getLightValue();
 };
 
 #endif //INFOB3IT_AMUX_H

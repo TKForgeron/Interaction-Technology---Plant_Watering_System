@@ -26,11 +26,11 @@ char lightPub[MSG_BUFFER_SIZE];
 char modePub[MSG_BUFFER_SIZE];
 const char *mqttServer = "mqtt.uu.nl";
 const int mqttPort = 1883;
-const char *mqttUser = "student088";
-const char *mqttPassword = "JqM5xmPe";
+const char *mqttUser = "fakeUser";
+const char *mqttPassword = "fakePassword";
 const std::string clientId = "plantWateringSystem";
 const std::string stdTopicPrefix = "infob3it/088/" + clientId + "/";
-const char *mqttWillMessage = "Offline...";
+const char *mqttWillMessage = "Offline";
 const std::string mqttWillTopic = stdTopicPrefix + "status";
 byte mqttWillQoS = 0;
 boolean mqttWillRetain = true;
@@ -63,7 +63,6 @@ WateringMotor wateringMotor(D6);
 Led builtInLed(D0);
 
 // Timers
-Timer serialPrintTimer;
 Timer readSensorTimer;
 Timer rotateStateTimer;
 Timer publishModeTimer;
@@ -75,12 +74,12 @@ unsigned long readSensorDelay = 1000 * 60 * 1 / 2; // per 1/2 minute(s)
 unsigned long rotateStateDelay = 5000;
 unsigned long publishModeDelay = 500;
 int modeButtonDebounce = 500;
-int lightValue;
-int moistureValue;
+float lightValue;
+float moistureValue;
 float temperatureValue;
 float humidityValue;
 float pressureValue;
-int moistureThreshold = 0; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+int moistureThreshold = 30; 
 unsigned long lastWaterTime;
 
 void readAllSensorValues()
@@ -97,7 +96,6 @@ void publishAllSensorValues(bool isInitPublish = false)
 {
   if (isInitPublish)
   {
-    Serial.println("initial publish");
     client.publish((stdTopicPrefix + "sensor/moisture").c_str(), "moisture connection setup");
     client.publish((stdTopicPrefix + "sensor/pressure").c_str(), "pressure connection setup");
     client.publish((stdTopicPrefix + "sensor/temperature").c_str(), "temperature connection setup");
@@ -110,10 +108,10 @@ void publishAllSensorValues(bool isInitPublish = false)
     snprintf(humidityPub, MSG_BUFFER_SIZE, "%s", String(humidityValue, 0).c_str()); // to percent
     client.publish((stdTopicPrefix + "sensor/humidity").c_str(), humidityPub);
 
-    snprintf(lightPub, MSG_BUFFER_SIZE, "%s", String(lightValue / 1024 * 100).c_str()); // to percent
+    snprintf(lightPub, MSG_BUFFER_SIZE, "%s", String(lightValue).c_str()); // to percent
     client.publish((stdTopicPrefix + "sensor/light").c_str(), lightPub);
 
-    snprintf(moisturePub, MSG_BUFFER_SIZE, "%s", String(moistureValue / 1024 * 100).c_str()); // to percent
+    snprintf(moisturePub, MSG_BUFFER_SIZE, "%s", String(moistureValue).c_str()); // to percent
     client.publish((stdTopicPrefix + "sensor/moisture").c_str(), moisturePub);
 
     snprintf(pressurePub, MSG_BUFFER_SIZE, "%s", String(pressureValue, 0).c_str()); // floor
@@ -193,6 +191,7 @@ void mqttReconnect()
       Serial.println("connected");
       // Once connected, publish an announcement...
       publishAllSensorValues(true); // true, because this is the initial publish for all sensor values
+      client.publish(mqttWillTopic.c_str(), "Online");
       client.publish((stdTopicPrefix + "pub/mode").c_str(), "mode connection setup");
       // ... and resubscribe
       client.subscribe((stdTopicPrefix + "actuator/wateringmotor").c_str());
@@ -203,9 +202,9 @@ void mqttReconnect()
     {
       Serial.print("failed with state ");
       Serial.print(client.state());
-      Serial.println(" try again in 2 seconds");
-      // Wait 2 seconds before retrying
-      delay(2000);
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
     }
   }
 }
@@ -216,9 +215,7 @@ void setup()
   Serial.begin(115200);
 
   // Wifi connection
-  Wifi wifi("Openhuis", "qzxvw123");
-  // Wifi wifi("Openhuis-iot", "internetofthings");
-  // Wifi wifi("Kouros", "interactietech");
+  Wifi wifi("fakeSSID","fakePassword");
 
   // MQTT connection
   client.setServer(mqttServer, mqttPort);
@@ -231,7 +228,6 @@ void setup()
   // Intial Values
   readAllSensorValues();
 
-  serialPrintTimer.start(1000);
   readSensorTimer.start(readSensorDelay);
   publishModeTimer.start(publishModeDelay);
   rotateStateTimer.start(rotateStateDelay);
@@ -243,13 +239,6 @@ void setup()
 
 void loop()
 {
-  if (serialPrintTimer.hasExpired())
-  {
-    serialPrintTimer.repeat();
-
-    Serial.println("------------------------");
-    Serial.println("");
-  }
 
   if (!client.connected())
   {
@@ -342,14 +331,15 @@ void loop()
     wateringMotor.setLastWaterTimeInCorrectUnit(); // it is done here, so when in waterTime state, displayed time does not change
     break;
   case waterTime:
-    display.drawString(0, 0, wateringMotor.lastWaterTimeInCorrectUnit + " ago");
+    display.drawString(0, 0, "Watered:");
+    display.drawString(0, 20, wateringMotor.lastWaterTimeInCorrectUnit + " ago");
     break;
   case humidity:
     display.drawString(0, 0, "Humidity: " + String(humidityValue, 0) + "%");
     break;
   case moisture:
     display.drawString(0, 0, "Soil moisture:");
-    display.drawString(0, 20, String(moistureValue / 1024 * 100) + "%");
+    display.drawString(0, 20, String(moistureValue) + "%");
     break;
   case pressure:
     display.drawString(0, 0, "Pressure:");

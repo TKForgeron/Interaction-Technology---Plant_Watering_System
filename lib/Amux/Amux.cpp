@@ -9,30 +9,23 @@ Amux::Amux(int selectPin, int analogReadPin)
 
     this->analogReadPin = analogReadPin;
     pinMode(analogReadPin, INPUT);
-
-    this->maxValue = 1024;
 };
 
-int Amux::getAnalogValue()
+float Amux::getAnalogValue()
 {
-    int analogValue = analogRead(this->analogReadPin);
+    float analogValue = (float)analogRead(this->analogReadPin);
     digitalWrite(this->selectPin, LOW);
 
-    return analogValue;
+    return analogValue / 1023.0F * 100.0F;
 }
 
-int Amux::getMoistureValue()
+float Amux::getMoistureValue()
 {
-    int moist = this->getAnalogValue();
     digitalWrite(this->selectPin, HIGH);
-    Serial.print("moist: ");
-    Serial.println(moist);
-    return this->maxValue - moist;
+    return this->getAnalogValue();
 };
 
-int Amux::getLightValue()
+float Amux::getLightValue()
 {
-    Serial.print("light: ");
-    Serial.println(this->getAnalogValue());
     return this->getAnalogValue();
 };
